@@ -1,4 +1,4 @@
-namespace dotnet_docker;
+namespace API.Models;
 
 public class WeatherForecast
 {

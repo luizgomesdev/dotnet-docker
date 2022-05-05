@@ -1,11 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
+using API.Models;
+using API.Services;
+using API.Interfaces;
 
-namespace dotnet_docker.Controllers;
-
+namespace API.Controllers;
 [ApiController]
 [Route("[controller]")]
 public class WeatherForecastController : ControllerBase
 {
+
+    private ITelemetryService telemetryService;
     private static readonly string[] Summaries = new[]
     {
         "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
@@ -21,6 +25,9 @@ public class WeatherForecastController : ControllerBase
     [HttpGet("GetWeatherForecast")]
     public IEnumerable<WeatherForecast> Get()
     {
+
+        telemetryService.Execute("GetWeatherForecast");
+
         return Enumerable.Range(1, 5).Select(index => new WeatherForecast
         {
             Date = DateTime.Now.AddDays(index),
