@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  webapi:
+    container_name: web-api
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
