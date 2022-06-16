@@ -1,87 +1,51 @@
 version: "3.7"
 
 services:
-  db:
-    container_name: db
-    image: postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_DB: otel-grafana-demo
-      POSTGRES_PASSWORD: localpost
-    volumes:
-      - ./db/data/:/var/lib/postgresql/data/ # Persist data locally
-    ports:
-      - 5432:5432
 
-  webapi:
-    container_name: web-api
-    build:
-      context: .
-      dockerfile: ./api/Dockerfile
+  # back-ends
+  zipkin:
+    container_name: zipkin
+    image: openzipkin/zipkin:latest
     ports:
-      - "8000:80"
-    depends_on:
-      - db
-    # environment:
-    #     # - ASPNETCORE_URLS=http://+:8000;
-    #     # - ASPNETCORE_ENVIROMENT=Development
-
-  # Observability services
-  jaeger:
-    container_name: jaeger
-    image: jaegertracing/all-in-one:latest
-    ports:
-      - "5775:5775/udp"
-      - "6831:6831/udp"
-      - "6832:6832/udp"
-      - "5778:5778"
-      - "16686:16686"
-      - "14268:14268"
       - "9411:9411"
 
   prometheus:
     container_name: prometheus
-    image: prom/prometheus
-    user: root
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
+    image: prom/prometheus:latest
     volumes:
-      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
     ports:
-      - 9090:9090
+      - "9090:9090"
 
-  promtail:
-    container_name: promtail
-    image: grafana/promtail
+  # OpenTelemetry Collector
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    command: ["--config=/etc/otel-collector-config.yml"]
     volumes:
-      - ./config/promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml
-      - ./data/api/:/usr/api/data/
-    command: -config.file=/etc/promtail/promtail-config.yaml
+      - ./otel-collector-config.yml:/etc/otel-collector-config.yml
+    ports:
+      - "8888:8888"   # Prometheus metrics exposed by the collector
+      - "8889:8889"   # Prometheus exporter metrics
+      - "13133:13133" # health_check extension
+      - "4317:4317"   # OTLP gRPC receiver
+      - "9411"        # Zipkin receiver
+      
     depends_on:
-      - webapi
-      - loki
+      # - prometheus
+      - zipkin
 
-  loki:
-    container_name: loki
-    image: grafana/loki
-    ports:
-      - 3100:3100
-    volumes:
-      - ./config/loki/loki-config.yaml:/etc/loki/loki-config.yaml
-      - ./data/loki:/data/loki
-    command: -config.file=/etc/loki/loki-config.yaml
-
-  grafana:
-    container_name: grafana
-    image: grafana/grafana:main
-    environment:
-      # Disable authentication
-      - GF_AUTH_DISABLE_LOGIN_FORM=true
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_NAME=Main Org.
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-    volumes:
-      - ./config/provisioning/:/etc/grafana/provisioning
-    ports:
-      - 3000:3000
+  # grafana:
+  #   container_name: grafana
+  #   image: grafana/grafana:main
+  #   environment:
+  #     # Disable authentication
+  #     - GF_AUTH_DISABLE_LOGIN_FORM=true
+  #     - GF_AUTH_ANONYMOUS_ENABLED=true
+  #     - GF_AUTH_ANONYMOUS_ORG_NAME=Main Org.
+  #     - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+  #     - GF_USERS_ALLOW_SIGN_UP=false
+  #   volumes:
+  #     - ./config/provisioning/:/etc/grafana/provisioning
+  #   ports:
+  #     - 3000:3000
