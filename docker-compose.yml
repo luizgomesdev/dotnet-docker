@@ -12,8 +12,9 @@ services:
   prometheus:
     container_name: prometheus
     image: prom/prometheus:latest
+    # command: ["'--config.file=/etc/prometheus/prometheus.yml'l"]
     volumes:
-      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
 
@@ -21,7 +22,6 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     container_name: otel-collector
-    command: ["--config=/etc/otel-collector-config.yml"]
     volumes:
       - ./otel-collector-config.yml:/etc/otel-collector-config.yml
     ports:
